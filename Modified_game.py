@@ -31,7 +31,7 @@ class player():
         self.y = y
         self.width = width
         self.height = height
-        self.speed = 10
+        self.speed = 15
         self.isjump = False
         self.jumpheight = 10
         self.left = False
@@ -114,7 +114,7 @@ class enemy():
         self.height = height
         self.end = end
         self.path = [self.x, self.end]
-        self.speed = 8
+        self.speed = 10
         self.walkCount = 0
         self.hitbox = (self.x + 10, self.y + 5, 80, 80)
         self.health = 500
@@ -212,98 +212,76 @@ while run:
         if event.type == pygame.QUIT:
             run = False
 
+    # Checking collisions between Naruto and Sasuke
     if naruto.health > 0 and sasuke.health > 0:
-        if naruto.hitbox[1] < sasuke.hitbox[1] + sasuke.hitbox[3] and naruto.hitbox[1] + naruto.hitbox[3] > \
-                sasuke.hitbox[1]:
-            if naruto.hitbox[0] + naruto.hitbox[2] > sasuke.hitbox[0] and naruto.hitbox[0] < sasuke.hitbox[0] + \
-                    sasuke.hitbox[2]:
+        if naruto.hitbox[1] < sasuke.hitbox[1] + sasuke.hitbox[3] and naruto.hitbox[1] + naruto.hitbox[3] > sasuke.hitbox[1]:
+            if naruto.hitbox[0] + naruto.hitbox[2] > sasuke.hitbox[0] and naruto.hitbox[0] < sasuke.hitbox[0] + sasuke.hitbox[2]:
                 naruto.hit()
                 hitSound.play()
 
-    else:
-        if naruto.health == 0:
-            naruto.speed = 0
-
+    # Handle the movement of shurikens
     for shuriken in shurikens:
-
         if sasuke.health > 0:
-
-            if shuriken.hitbox[1] + round(shuriken.hitbox[3] / 2) > sasuke.hitbox[1] and shuriken.hitbox[1] + round(
-                    shuriken.hitbox[3] / 2) < sasuke.hitbox[1] + sasuke.hitbox[3]:
-                if shuriken.hitbox[0] + shuriken.hitbox[2] > sasuke.hitbox[0] and shuriken.hitbox[0] + shuriken.hitbox[
-                    2] < sasuke.hitbox[0] + sasuke.hitbox[2]:
+            if sasuke.hitbox[1] < shuriken.hitbox[1] + round(shuriken.hitbox[3] / 2) < sasuke.hitbox[1] + sasuke.hitbox[3]:
+                if  sasuke.hitbox[0] < shuriken.hitbox[0] + shuriken.hitbox[2] < sasuke.hitbox[0] + sasuke.hitbox[2]:
                     sasuke.hit()
                     hitSound.play()
                     shurikens.pop(shurikens.index(shuriken))
 
-        else:
-            sasuke.speed = 0
-
         if shuriken.x < win_x-1 and shuriken.x > 0:
             shuriken.x += shuriken.vel
-
         else:
             shurikens.pop(shurikens.index(shuriken))
 
-    ########### KEYS and  CONTROLS ###########
+    ########### KEYS and JOYSTICK CONTROLS ###########
 
     keys = pygame.key.get_pressed()
-    result, position = joystick.read_arduino_data()
+    result = joystick.read_arduino_data()
 
     ########### SHOOTING ################
-
-    if keys[pygame.K_SPACE] and throwSpeed == 0:
-
-        if naruto.left == True:
-            facing = -1
-        else:
-            facing = 1
-
-        if len(shurikens) < 5:
-            shurikens.append(weapons(round(naruto.x + 60), round(naruto.y + 30), 40, 40, facing))
-        throwSpeed = 1
+    ########### SHOOTING ################
+    if (keys[pygame.K_SPACE] or result == 2):
+        if throwSpeed == 0:  # Only reset throwSpeed when starting to shoot
+            facing = -1 if naruto.left else 1
+            if len(shurikens) < 5:
+                shurikens.append(weapons(round(naruto.x + 60), round(naruto.y + 30), 40, 40, facing))
+            throwSpeed = 1
+    else:
+        throwSpeed = 0  # Reset throwSpeed when space key or joystick release
 
     ######## LEFT ###########
-    if keys[pygame.K_LEFT] and naruto.x > naruto.speed:
+    if (keys[pygame.K_LEFT] or result == 3) and naruto.x > naruto.speed:
         naruto.x -= naruto.speed
         naruto.left = True
         naruto.right = False
         naruto.standing = False
 
-
-
     ######### RIGHT ##################
-    elif keys[pygame.K_RIGHT] and naruto.x < (win_x*69/70) - naruto.width - naruto.speed:
+    elif (keys[pygame.K_RIGHT] or result == 4) and naruto.x < (win_x * 69 / 70) - naruto.width - naruto.speed:
         naruto.x += naruto.speed
         naruto.left = False
         naruto.right = True
         naruto.standing = False
-
 
     else:
         naruto.standing = True
         naruto.walkCount = 0
 
     ########## JUMP #############
-    if naruto.isjump == False:
-        if keys[pygame.K_UP]:
+    if not naruto.isjump:
+        if keys[pygame.K_UP] or result == 1:
             naruto.isjump = True
             naruto.left = False
             naruto.right = False
             naruto.walkCount = 0
-
     else:
         if naruto.jumpheight >= -10:
             neg = 1
-
             if naruto.jumpheight < 0:
                 neg = -1
-
             naruto.y -= (naruto.jumpheight ** 2) * 0.5 * neg
             naruto.jumpheight -= 1
-
         else:
-
             naruto.isjump = False
             naruto.jumpheight = 10
 
